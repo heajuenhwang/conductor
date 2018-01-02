@@ -29,6 +29,8 @@ import javax.inject.Singleton;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
+import com.netflix.conductor.core.DNSLookup;
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,6 +110,11 @@ public class HttpTask extends WorkflowSystemTask {
 			task.setReasonForIncompletion(reason);
 			task.setStatus(Status.FAILED);
 			return;
+		} else if (input.getServiceDiscoveryQuery() != null) {
+			String url = lookup(input.getServiceDiscoveryQuery());
+			if (url != null) {
+				input.setUri(url + input.getUri());
+			}
 		}
 		
 		if(input.getMethod() == null) {
@@ -247,6 +254,17 @@ public class HttpTask extends WorkflowSystemTask {
 		return 60;
 	}
 	
+	private String lookup(String service) {
+		DNSLookup lookup = new DNSLookup();
+		DNSLookup.DNSResponses responses = lookup.lookupService(service);
+		if (responses != null && ArrayUtils.isNotEmpty(responses.getResponses())) {
+			String address = responses.getResponses()[0].getAddress();
+			int port = responses.getResponses()[0].getPort();
+			return "http://" + address + ":" + port;
+		}
+		return null;
+	}
+	
 	private static ObjectMapper objectMapper() {
 	    final ObjectMapper om = new ObjectMapper();
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -301,6 +319,8 @@ public class HttpTask extends WorkflowSystemTask {
 		private String oauthConsumerKey;
 
 		private String oauthConsumerSecret;
+		
+		private String serviceDiscoveryQuery;
 
 		/**
 		 * @return the method
@@ -414,6 +434,20 @@ public class HttpTask extends WorkflowSystemTask {
 		 */
 		public void setOauthConsumerSecret(String oauthConsumerSecret) {
 			this.oauthConsumerSecret = oauthConsumerSecret;
+		}
+		
+		/**
+		 * @return The dns name of the service
+		 */
+		public String getServiceDiscoveryQuery() {
+			return serviceDiscoveryQuery;
+		}
+		
+		/**
+		 * @param serviceDiscoveryQuery The dns name of the service
+		 */
+		public void setServiceDiscoveryQuery(String serviceDiscoveryQuery) {
+			this.serviceDiscoveryQuery = serviceDiscoveryQuery;
 		}
 	}
 }
