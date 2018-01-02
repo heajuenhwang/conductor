@@ -24,7 +24,8 @@ public class DNSLookup {
                     SRVRecord srv = (SRVRecord) record;
 
                     String hostname = srv.getTarget().toString().replaceFirst("\\.$", "");
-                    InetAddress address = Address.getByName(hostname);
+                    InetAddress address = InetAddress.getByName(hostname);
+
                     int port = srv.getPort();
                     DNSResponse r = new DNSResponse(hostname, port);
                     r.setAddress(address.getHostAddress());
